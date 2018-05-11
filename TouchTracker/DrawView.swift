@@ -32,7 +32,7 @@ class DrawView: UIView {
     
     func stroke(_ line: Line) {
         let path = UIBezierPath()
-        path.lineWidth = 10
+        path.lineWidth = lineThickness
         path.lineCapStyle = .round
         
         path.move(to: line.begin)
@@ -41,14 +41,10 @@ class DrawView: UIView {
     }
     
     override func draw(_ rect: CGRect) {
-        // Draw finished lines in black
-        UIColor.black.setStroke()
         for line in finishedLines {
             stroke(line)
         }
         
-        // Draw current lines in red
-        UIColor.red.setStroke()
         for (_, line) in currentLines {
             stroke(line)
         }
