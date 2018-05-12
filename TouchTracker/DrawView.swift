@@ -8,7 +8,7 @@
 
 import UIKit
 
-class DrawView: UIView {
+class DrawView: UIView, UIGestureRecognizerDelegate {
     var currentLines = [NSValue:Line]()
     var finishedLines = [Line]()
     var selectedLineIndex: Int? {
@@ -19,6 +19,7 @@ class DrawView: UIView {
             }
         }
     }
+    var moveRecognizer: UIPanGestureRecognizer!
     
     @IBInspectable var finishedLineColor: UIColor = UIColor.black {
         didSet {
@@ -130,6 +131,14 @@ class DrawView: UIView {
         tapRecognizer.delaysTouchesBegan = true
         tapRecognizer.require(toFail: doubleTapRecognizer)
         addGestureRecognizer(tapRecognizer)
+        
+        let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(DrawView.longPress(_:)))
+        addGestureRecognizer(longPressRecognizer)
+        
+        moveRecognizer = UIPanGestureRecognizer(target: self, action: #selector(DrawView.moveLine(_:)))
+        moveRecognizer.delegate = self
+        moveRecognizer.cancelsTouchesInView = false
+        addGestureRecognizer(moveRecognizer)
     }
     
     @objc func doubleTap(_ gestureRecognizer: UIGestureRecognizer) {
@@ -205,5 +214,54 @@ class DrawView: UIView {
         // Redraw everything
         setNeedsDisplay()
         }
+    }
+    
+    @objc func longPress(_ gestureRecognizer: UIGestureRecognizer) {
+        print("Recognized a long press")
+        
+        if gestureRecognizer.state == .began {
+            let point = gestureRecognizer.location(in: self)
+            selectedLineIndex = indexOfLine(at: point)
+            
+            if selectedLineIndex != nil {
+                currentLines.removeAll()
+            }
+        } else if gestureRecognizer.state == .ended {
+            selectedLineIndex = nil
+        }
+        
+        setNeedsDisplay()
+    }
+    
+    @objc func moveLine(_ gestureRecognizer: UIPanGestureRecognizer) {
+        print("Recognize a pan")
+        
+        // If a line is selected...
+        if let index = selectedLineIndex {
+            // When the pan recognizer changes its position
+            if gestureRecognizer.state == .changed {
+                // How far has the pan moved?
+                let translation = gestureRecognizer.translation(in: self)
+                
+                // Add the translation to the current beginning and end points of the line
+                // Make sure there are no copy and paste typos!
+                finishedLines[index].begin.x += translation.x
+                finishedLines[index].begin.y += translation.y
+                finishedLines[index].end.x += translation.x
+                finishedLines[index].end.y += translation.y
+                
+                gestureRecognizer.setTranslation(CGPoint.zero, in: self)
+                
+                // Redraw the screen
+                setNeedsDisplay()
+            }
+        } else {
+            // If no line is selected, do not da anything
+            return
+        }
+    }
+    
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
     }
 }
